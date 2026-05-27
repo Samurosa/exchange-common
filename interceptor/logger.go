@@ -2,18 +2,40 @@ package interceptor
 
 import (
 	"context"
-	"fmt"
+	"time"
 
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-func Logger() grpc.UnaryServerInterceptor {
-	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
+type Logger struct {
+	log *zap.Logger
+}
+
+func NewLogger(log *zap.Logger) *Logger {
+	return &Logger{log: log}
+}
+
+func (l *Logger) Unary() grpc.UnaryServerInterceptor {
+	return func(
+		ctx context.Context,
+		req any,
+		info *grpc.UnaryServerInfo,
+		handler grpc.UnaryHandler,
+	) (any, error) {
+
+		start := time.Now()
 
 		resp, err := handler(ctx, req)
 
-		// позже сюда добавишь zap
-		fmt.Println("method:", info.FullMethod, "err:", err)
+		requestID, _ := ctx.Value(RequestIDKey).(string)
+
+		l.log.Info("grpc request",
+			zap.String("request_id", requestID),
+			zap.String("method", info.FullMethod),
+			zap.Duration("duration", time.Since(start)),
+			zap.Error(err),
+		)
 
 		return resp, err
 	}
