@@ -16,7 +16,7 @@ func NewLogger(log *zap.Logger) *Logger {
 	return &Logger{log: log}
 }
 
-func (l *Logger) Unary() grpc.UnaryServerInterceptor {
+func (l *Logger) Unary(RequestIDKey any) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
