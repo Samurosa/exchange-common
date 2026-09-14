@@ -1,6 +1,8 @@
 package jwt
 
-import "github.com/golang-jwt/jwt/v5"
+import (
+	"github.com/golang-jwt/jwt/v5"
+)
 
 type Parser struct {
 	secret []byte
@@ -12,26 +14,44 @@ func NewParser(secret string) *Parser {
 	}
 }
 
-func (p *Parser) ParseAccessToken(tokenString string) (AccessClaims, error) {
+func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenParse, error) {
 	token, err := jwt.ParseWithClaims(
-		tokenString,
-		&AccessClaims{},
-		func(token *jwt.Token) (any, error) {
+		accessToken,
+		&AccessTokenParse{},
+		func(token *jwt.Token) (interface{}, error) {
 			if token.Method != jwt.SigningMethodHS256 {
 				return nil, ErrInvalidToken
 			}
-
-			return p.secret, nil
+			return j.secret, nil
 		},
 	)
 	if err != nil {
-		return AccessClaims{}, ErrInvalidToken
+		return AccessTokenParse{}, ErrInvalidToken
 	}
 
-	claims, ok := token.Claims.(*AccessClaims)
-	if !ok || !token.Valid {
-		return AccessClaims{}, ErrInvalidToken
+	claims, err := GetClaimsWithAccessToken(token)
+	if err != nil {
+		return AccessTokenParse{}, err
 	}
 
 	return *claims, nil
+}
+
+func GetClaimsWithAccessToken(token *jwt.Token) (*AccessTokenParse, error) {
+
+	if !token.Valid {
+		return &AccessTokenParse{}, ErrInvalidToken
+	}
+
+	claims, ok := token.Claims.(*AccessTokenParse)
+	if !ok {
+		return &AccessTokenParse{}, ErrInvalidToken
+	}
+
+	return &AccessTokenParse{
+		UserID: claims.UserID,
+		Role:   claims.Role,
+		Device: claims.Device,
+		JTI:    claims.JTI,
+	}, nil
 }

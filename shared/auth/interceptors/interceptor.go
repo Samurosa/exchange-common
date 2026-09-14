@@ -13,15 +13,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var publicMethods = map[string]struct{}{
-	"/user.UserService/Login":        {},
-	"/user.UserService/Registration": {},
-	"/user.UserService/RefreshToken": {},
-}
-
 func AuthInterceptor(
 	log *zap.Logger,
 	tokenManager *jwt.Parser,
+	publicMethods map[string]struct{},
 ) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		log := log.Named("auth interceptor")
