@@ -21,7 +21,7 @@ var publicMethods = map[string]struct{}{
 
 func AuthInterceptor(
 	log *zap.Logger,
-	tokenManager jwt.Parser,
+	tokenManager *jwt.Parser,
 ) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		log := log.Named("auth interceptor")
