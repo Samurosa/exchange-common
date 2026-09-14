@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/Samurosa/exchange-common/shared/auth/jwt"
+	"github.com/Samurosa/exchange-common/shared/auth/session"
 	"github.com/Samurosa/exchange-common/shared/auth/sharedContext"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -17,6 +18,7 @@ func AuthInterceptor(
 	log *zap.Logger,
 	tokenManager *jwt.Parser,
 	publicMethods map[string]struct{},
+	sessionValidator session.Validator,
 ) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
 		log := log.Named("auth interceptor")
@@ -42,6 +44,11 @@ func AuthInterceptor(
 
 		claims, err := tokenManager.ParseAccessToken(token)
 		if err != nil {
+			log.Error("invalid token", zap.Error(err))
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+
+		if err := sessionValidator.Validate(ctx, claims.ID); err != nil {
 			log.Error("invalid token", zap.Error(err))
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
