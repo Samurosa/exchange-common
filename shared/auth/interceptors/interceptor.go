@@ -48,7 +48,12 @@ func AuthInterceptor(
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
 
-		if err := sessionValidator.Validate(ctx, claims.ID); err != nil {
+		if claims.JTI == "" {
+			log.Error("claims.JTI is empty")
+			return nil, status.Error(codes.Unauthenticated, "invalid token")
+		}
+
+		if err := sessionValidator.Validate(ctx, claims.JTI); err != nil {
 			log.Error("invalid token", zap.Error(err))
 			return nil, status.Error(codes.Unauthenticated, "invalid token")
 		}
