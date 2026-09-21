@@ -8,50 +8,63 @@ type Parser struct {
 	secret []byte
 }
 
-func NewParser(secret string) *Parser {
+func NewParser(secret string) (*Parser, error) {
+	if secret == "" {
+		return nil, ErrEmptySecret
+	}
+
 	return &Parser{
 		secret: []byte(secret),
-	}
+	}, nil
 }
 
-func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenParse, error) {
+func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenClaims, error) {
+	if accessToken == "" {
+		return AccessTokenClaims{}, ErrInvalidToken
+	}
+
+	if len(j.secret) == 0 {
+		return AccessTokenClaims{}, ErrEmptySecret
+	}
+
 	token, err := jwt.ParseWithClaims(
 		accessToken,
-		&AccessTokenParse{},
+		&AccessTokenClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			if token.Method != jwt.SigningMethodHS256 {
 				return nil, ErrInvalidToken
 			}
+
 			return j.secret, nil
 		},
 	)
 	if err != nil {
-		return AccessTokenParse{}, ErrInvalidToken
+		return AccessTokenClaims{}, ErrInvalidToken
 	}
 
 	claims, err := GetClaimsWithAccessToken(token)
 	if err != nil {
-		return AccessTokenParse{}, err
+		return AccessTokenClaims{}, err
+	}
+
+	if err := claims.Validate(); err != nil {
+		return AccessTokenClaims{}, err
 	}
 
 	return *claims, nil
 }
 
-func GetClaimsWithAccessToken(token *jwt.Token) (*AccessTokenParse, error) {
-
-	if !token.Valid {
-		return &AccessTokenParse{}, ErrInvalidToken
+func GetClaimsWithAccessToken(
+	token *jwt.Token,
+) (*AccessTokenClaims, error) {
+	if token == nil || !token.Valid {
+		return nil, ErrInvalidToken
 	}
 
-	claims, ok := token.Claims.(*AccessTokenParse)
-	if !ok {
-		return &AccessTokenParse{}, ErrInvalidToken
+	claims, ok := token.Claims.(*AccessTokenClaims)
+	if !ok || claims == nil {
+		return nil, ErrInvalidToken
 	}
 
-	return &AccessTokenParse{
-		UserID: claims.UserID,
-		Role:   claims.Role,
-		Device: claims.Device,
-		JTI:    claims.JTI,
-	}, nil
+	return claims, nil
 }
