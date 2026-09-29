@@ -3,9 +3,9 @@ package jwt
 import "github.com/golang-jwt/jwt/v5"
 
 type AccessTokenClaims struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role"`
-	Device string `json:"device"`
+	UserID   string `json:"user_id"`
+	Role     string `json:"role"`
+	DeviceID string `json:"device_id"`
 
 	jwt.RegisteredClaims
 }
@@ -19,7 +19,7 @@ func (c AccessTokenClaims) Validate() error {
 		return ErrInvalidToken
 	}
 
-	if c.Device == "" {
+	if c.DeviceID == "" {
 		return ErrInvalidToken
 	}
 

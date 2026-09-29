@@ -22,7 +22,6 @@ func Authenticate(
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		log.Debug("missing metadata")
-
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"missing authentication metadata",
@@ -32,7 +31,6 @@ func Authenticate(
 	values := md.Get("authorization")
 	if len(values) == 0 {
 		log.Debug("missing authorization header")
-
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"missing authorization header",
@@ -42,7 +40,6 @@ func Authenticate(
 	token, ok := extractBearerToken(values[0])
 	if !ok {
 		log.Debug("invalid authorization header format")
-
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"invalid authorization header",
@@ -55,7 +52,6 @@ func Authenticate(
 			"invalid access token",
 			zap.Error(err),
 		)
-
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"invalid access token",
@@ -67,7 +63,6 @@ func Authenticate(
 			"session validation failed",
 			zap.Error(err),
 		)
-
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"invalid session",
@@ -79,7 +74,7 @@ func Authenticate(
 		func(requestCtx *sharedContext.RequestContext) {
 			requestCtx.Principal.UserID = claims.UserID
 			requestCtx.Principal.Role = claims.Role
-			requestCtx.Metadata.DeviceID = claims.Device
+			requestCtx.Metadata.DeviceID = claims.DeviceID
 			requestCtx.JTI = claims.ID
 		},
 	)
