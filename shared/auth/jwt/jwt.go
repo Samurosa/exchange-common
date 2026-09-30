@@ -23,10 +23,6 @@ func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenClaims, error)
 		return AccessTokenClaims{}, ErrInvalidToken
 	}
 
-	if len(j.secret) == 0 {
-		return AccessTokenClaims{}, ErrEmptySecret
-	}
-
 	token, err := jwt.ParseWithClaims(
 		accessToken,
 		&AccessTokenClaims{},
@@ -39,7 +35,7 @@ func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenClaims, error)
 		},
 	)
 	if err != nil {
-		return AccessTokenClaims{}, ErrInvalidToken
+		return AccessTokenClaims{}, err
 	}
 
 	claims, err := GetClaimsWithAccessToken(token)

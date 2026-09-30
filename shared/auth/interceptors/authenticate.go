@@ -19,6 +19,7 @@ func Authenticate(
 	tokenParser *jwt.Parser,
 	sessionValidator session.Validator,
 ) (context.Context, error) {
+	log = log.Named("authenticate")
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		log.Debug("missing metadata")
@@ -48,7 +49,7 @@ func Authenticate(
 
 	claims, err := tokenParser.ParseAccessToken(token)
 	if err != nil {
-		log.Debug(
+		log.Warn(
 			"invalid access token",
 			zap.Error(err),
 		)

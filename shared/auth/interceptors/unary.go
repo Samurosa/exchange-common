@@ -21,8 +21,6 @@ func AuthInterceptor(
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		log := log.Named("auth interceptor")
-
 		if _, ok := publicMethods[info.FullMethod]; ok {
 			return handler(ctx, req)
 		}
