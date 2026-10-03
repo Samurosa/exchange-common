@@ -43,10 +43,6 @@ func (j *Parser) ParseAccessToken(accessToken string) (AccessTokenClaims, error)
 		return AccessTokenClaims{}, err
 	}
 
-	if err := claims.Validate(); err != nil {
-		return AccessTokenClaims{}, err
-	}
-
 	return *claims, nil
 }
 

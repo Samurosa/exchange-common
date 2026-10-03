@@ -35,10 +35,6 @@ func DecodeCursor(cursor string) (SpotCursor, error) {
 		return SpotCursor{}, err
 	}
 
-	if spotCursor.ID == "" {
-		return SpotCursor{}, ErrInvalidCursor
-	}
-
 	if spotCursor.CreatedAt.IsZero() {
 		return SpotCursor{}, ErrInvalidCursor
 	}

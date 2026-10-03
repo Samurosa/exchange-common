@@ -1,5 +1,7 @@
 package sharedContext
 
+import "time"
+
 type Principal struct {
 	UserID string
 	Role   string
@@ -14,5 +16,6 @@ type RequestContext struct {
 	Principal Principal
 	Metadata  RequestMetadata
 
-	JTI string
+	JTI                  string
+	AccessTokenExpiresAt time.Time
 }

@@ -1,4 +1,4 @@
-package interceptors
+package authentication
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func Authenticate(
 	}
 
 	values := md.Get("authorization")
-	if len(values) == 0 {
+	if len(values) != 1 {
 		log.Debug("missing authorization header")
 		return nil, status.Error(
 			codes.Unauthenticated,
@@ -77,6 +77,7 @@ func Authenticate(
 			requestCtx.Principal.Role = claims.Role
 			requestCtx.Metadata.DeviceID = claims.DeviceID
 			requestCtx.JTI = claims.ID
+			requestCtx.AccessTokenExpiresAt = claims.ExpiresAt.Time
 		},
 	)
 
