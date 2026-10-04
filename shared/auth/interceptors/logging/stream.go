@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -16,8 +17,6 @@ func (s *loggerServerStream) Context() context.Context {
 	return s.ctx
 }
 
-// LoggerStreamInterceptor adds a logger with the gRPC method to a stream context.
-// The base logger is initialized once by the application and reused for streams.
 func LoggerStreamInterceptor(log *zap.Logger) grpc.StreamServerInterceptor {
 	if log == nil {
 		log = noopLogger
@@ -29,12 +28,16 @@ func LoggerStreamInterceptor(log *zap.Logger) grpc.StreamServerInterceptor {
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-		requestLog := log.With(zap.String("grpc_method", info.FullMethod))
+		started := time.Now()
+		requestLog := log.With(zap.String("grpc_method", info.FullMethod), zap.String("grpc_type", "stream"))
 		ctx := context.WithValue(stream.Context(), loggerContextKey{}, requestLog)
+		requestLog.Debug("grpc stream started")
 
-		return handler(srv, &loggerServerStream{
+		err := handler(srv, &loggerServerStream{
 			ServerStream: stream,
 			ctx:          ctx,
 		})
+		logCompletion(requestLog, started, err)
+		return err
 	}
 }

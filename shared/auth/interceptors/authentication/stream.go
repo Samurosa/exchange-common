@@ -2,8 +2,10 @@ package authentication
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/Samurosa/exchange-common/shared/auth/interceptors/logging"
 	"github.com/Samurosa/exchange-common/shared/auth/jwt"
 	"github.com/Samurosa/exchange-common/shared/auth/session"
 	"github.com/Samurosa/exchange-common/shared/auth/sharedContext"
@@ -38,7 +40,6 @@ func (s *authenticatedServerStream) RecvMsg(message interface{}) error {
 }
 
 func AuthStreamInterceptor(
-	log *zap.Logger,
 	tokenParser *jwt.Parser,
 	sessionValidator session.Validator,
 ) grpc.StreamServerInterceptor {
@@ -48,11 +49,8 @@ func AuthStreamInterceptor(
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
 	) error {
-		log := log.Named("auth stream interceptor")
-
 		ctx, err := Authenticate(
 			stream.Context(),
-			log,
 			tokenParser,
 			sessionValidator,
 		)
@@ -67,19 +65,25 @@ func AuthStreamInterceptor(
 		ctx, cancel := context.WithCancelCause(ctx)
 		defer cancel(nil)
 
-		// Expiry cancels the stream at exp; session revocation is checked every second.
-		// Handlers must observe stream.Context(), as with ordinary gRPC cancellation.
 		go watchSession(ctx, cancel, requestCtx, sessionValidator)
 
-		// Replace stream context with authenticated context.
 		stream = &authenticatedServerStream{
 			ServerStream: stream,
 			ctx:          ctx,
 		}
 
 		err = handler(srv, stream)
-		if cause := context.Cause(ctx); status.Code(cause) == codes.Unauthenticated {
-			return cause
+		if ctx.Err() != nil {
+			cause := contextError(ctx)
+			logging.FromContext(ctx).Debug("authenticated stream context ended", zap.Error(cause))
+
+			if code := status.Code(cause); code == codes.Unauthenticated || code == codes.Unavailable {
+				return cause
+			}
+			if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
+				status.Code(err) == codes.Canceled || status.Code(err) == codes.DeadlineExceeded {
+				return cause
+			}
 		}
 		return err
 	}
@@ -96,8 +100,11 @@ func watchSession(ctx context.Context, cancel context.CancelCauseFunc, requestCt
 			validationCtx, stop := context.WithTimeout(ctx, time.Second)
 			err := validator.Validate(validationCtx, requestCtx.JTI)
 			stop()
+			if ctx.Err() != nil {
+				return
+			}
 			if err != nil {
-				cancel(status.Error(codes.Unauthenticated, "invalid session"))
+				cancel(sessionValidationError(ctx, err))
 				return
 			}
 		}

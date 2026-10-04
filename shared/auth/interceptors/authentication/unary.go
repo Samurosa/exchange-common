@@ -5,12 +5,10 @@ import (
 
 	"github.com/Samurosa/exchange-common/shared/auth/jwt"
 	"github.com/Samurosa/exchange-common/shared/auth/session"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 func AuthInterceptor(
-	log *zap.Logger,
 	tokenParser *jwt.Parser,
 	publicMethods map[string]struct{},
 	sessionValidator session.Validator,
@@ -25,7 +23,7 @@ func AuthInterceptor(
 			return handler(ctx, req)
 		}
 
-		ctx, err := Authenticate(ctx, log, tokenParser, sessionValidator)
+		ctx, err := Authenticate(ctx, tokenParser, sessionValidator)
 		if err != nil {
 			return nil, err
 		}

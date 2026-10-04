@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/Samurosa/exchange-common/shared/auth/interceptors/logging"
 	"github.com/Samurosa/exchange-common/shared/auth/jwt"
 	"github.com/Samurosa/exchange-common/shared/auth/session"
 	"github.com/Samurosa/exchange-common/shared/auth/sharedContext"
@@ -15,11 +16,10 @@ import (
 
 func Authenticate(
 	ctx context.Context,
-	log *zap.Logger,
 	tokenParser *jwt.Parser,
 	sessionValidator session.Validator,
 ) (context.Context, error) {
-	log = log.Named("authenticate")
+	log := logging.FromContext(ctx).Named("authenticate")
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		log.Debug("missing metadata")
@@ -30,12 +30,16 @@ func Authenticate(
 	}
 
 	values := md.Get("authorization")
-	if len(values) != 1 {
+	if len(values) == 0 {
 		log.Debug("missing authorization header")
 		return nil, status.Error(
 			codes.Unauthenticated,
 			"missing authorization header",
 		)
+	}
+	if len(values) > 1 {
+		log.Debug("multiple authorization headers", zap.Int("count", len(values)))
+		return nil, status.Error(codes.Unauthenticated, "multiple authorization headers")
 	}
 
 	token, ok := extractBearerToken(values[0])
@@ -49,7 +53,7 @@ func Authenticate(
 
 	claims, err := tokenParser.ParseAccessToken(token)
 	if err != nil {
-		log.Warn(
+		log.Debug(
 			"invalid access token",
 			zap.Error(err),
 		)
@@ -60,14 +64,10 @@ func Authenticate(
 	}
 
 	if err := sessionValidator.Validate(ctx, claims.ID); err != nil {
-		log.Debug(
-			"session validation failed",
-			zap.Error(err),
-		)
-		return nil, status.Error(
-			codes.Unauthenticated,
-			"invalid session",
-		)
+		return nil, sessionValidationError(ctx, err)
+	}
+	if ctx.Err() != nil {
+		return nil, contextError(ctx)
 	}
 
 	ctx = sharedContext.UpdateRequestContext(

@@ -2,13 +2,12 @@ package logging
 
 import (
 	"context"
+	"time"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-// LoggerInterceptor adds a logger with the gRPC method to each request context.
-// The base logger is initialized once by the application and reused for requests.
 func LoggerInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 	if log == nil {
 		log = noopLogger
@@ -20,9 +19,12 @@ func LoggerInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
-		requestLog := log.With(zap.String("grpc_method", info.FullMethod))
+		started := time.Now()
+		requestLog := log.With(zap.String("grpc_method", info.FullMethod), zap.String("grpc_type", "unary"))
 		ctx = context.WithValue(ctx, loggerContextKey{}, requestLog)
 
-		return handler(ctx, req)
+		resp, err := handler(ctx, req)
+		logCompletion(requestLog, started, err)
+		return resp, err
 	}
 }
