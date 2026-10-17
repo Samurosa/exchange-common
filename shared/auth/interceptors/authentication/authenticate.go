@@ -70,7 +70,7 @@ func Authenticate(
 		return nil, contextError(ctx)
 	}
 
-	ctx = sharedContext.UpdateRequestContext(
+	ctx, ok = sharedContext.UpdateRequestContext(
 		ctx,
 		func(requestCtx *sharedContext.RequestContext) {
 			requestCtx.Principal.UserID = claims.UserID
@@ -86,6 +86,13 @@ func Authenticate(
 		zap.String("user_id", claims.UserID),
 		zap.String("jti", claims.ID),
 	)
+
+	if ctx.Err() != nil {
+		cause := contextError(ctx)
+		logging.FromContext(ctx).Debug("authenticated stream context ended", zap.Error(cause))
+
+		return nil, cause
+	}
 
 	return ctx, nil
 }

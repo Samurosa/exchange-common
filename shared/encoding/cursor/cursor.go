@@ -2,46 +2,58 @@ package cursor
 
 import (
 	"encoding/base64"
-	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-type SpotCursor struct {
+type Cursor struct {
 	CreatedAt time.Time `json:"created_at"`
 	ID        string    `json:"id"`
 }
 
-func EncodeCursor(cursor SpotCursor) (string, error) {
-	data, err := json.Marshal(cursor)
-	if err != nil {
-		return "", err
-	}
+func EncodeCursor(reqCursor Cursor) (string, error) {
 
-	return base64.RawURLEncoding.EncodeToString(data), nil
+	raw := fmt.Sprintf("%d:%s", reqCursor.CreatedAt.UnixNano(), reqCursor.ID)
+
+	return base64.RawURLEncoding.EncodeToString([]byte(raw)), nil
 }
 
-func DecodeCursor(cursor string) (SpotCursor, error) {
+func DecodeCursor(reqCursor string) (Cursor, error) {
 
-	data, err := base64.RawURLEncoding.DecodeString(cursor)
+	data, err := base64.RawURLEncoding.DecodeString(reqCursor)
 	if err != nil {
-		return SpotCursor{}, err
+		return Cursor{}, err
 	}
 
-	var spotCursor SpotCursor
+	splitCursor := strings.Split(string(data), ":")
 
-	if err = json.Unmarshal(data, &spotCursor); err != nil {
-		return SpotCursor{}, err
+	if len(splitCursor) != 2 {
+		return Cursor{}, ErrInvalidCursor
 	}
 
-	if spotCursor.CreatedAt.IsZero() {
-		return SpotCursor{}, ErrInvalidCursor
+	timestamp, err := strconv.ParseInt(splitCursor[0], 10, 64)
+	if err != nil {
+		return Cursor{}, ErrInvalidCursor
 	}
 
-	if _, err := uuid.Parse(spotCursor.ID); err != nil {
-		return SpotCursor{}, ErrInvalidCursor
+	createdAt := time.Unix(0, timestamp)
+
+	if createdAt.IsZero() {
+		return Cursor{}, ErrInvalidCursor
 	}
 
-	return spotCursor, nil
+	id := splitCursor[1]
+
+	if _, err := uuid.Parse(id); err != nil {
+		return Cursor{}, ErrInvalidCursor
+	}
+
+	return Cursor{
+		CreatedAt: createdAt,
+		ID:        id,
+	}, nil
 }

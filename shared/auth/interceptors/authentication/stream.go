@@ -2,7 +2,6 @@ package authentication
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/Samurosa/exchange-common/shared/auth/interceptors/logging"
@@ -77,13 +76,7 @@ func AuthStreamInterceptor(
 			cause := contextError(ctx)
 			logging.FromContext(ctx).Debug("authenticated stream context ended", zap.Error(cause))
 
-			if code := status.Code(cause); code == codes.Unauthenticated || code == codes.Unavailable {
-				return cause
-			}
-			if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) ||
-				status.Code(err) == codes.Canceled || status.Code(err) == codes.DeadlineExceeded {
-				return cause
-			}
+			return cause
 		}
 		return err
 	}

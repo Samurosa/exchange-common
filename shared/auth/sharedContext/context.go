@@ -7,8 +7,11 @@ type requestContextKey struct{}
 func UpdateRequestContext(
 	ctx context.Context,
 	update func(*RequestContext),
-) context.Context {
-	requestCtx, _ := GetRequestContext(ctx)
+) (context.Context, bool) {
+	requestCtx, ok := GetRequestContext(ctx)
+	if !ok {
+		return ctx, false
+	}
 
 	update(&requestCtx)
 
@@ -16,7 +19,7 @@ func UpdateRequestContext(
 		ctx,
 		requestContextKey{},
 		requestCtx,
-	)
+	), true
 }
 
 func GetRequestContext(

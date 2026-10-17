@@ -16,6 +16,5 @@ func panicError(ctx context.Context, recovered interface{}) error {
 		zap.ByteString("stack", debug.Stack()),
 	)
 
-	// Подробности паники остаются в серверных логах.
 	return status.Error(codes.Internal, "internal server error")
 }
