@@ -16,5 +16,5 @@ func FromContext(ctx context.Context) *zap.Logger {
 		return noopLogger
 	}
 
-	return log
+	return WithTrace(ctx, log)
 }

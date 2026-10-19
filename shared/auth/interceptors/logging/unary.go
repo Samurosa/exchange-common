@@ -20,11 +20,18 @@ func LoggerInterceptor(log *zap.Logger) grpc.UnaryServerInterceptor {
 		handler grpc.UnaryHandler,
 	) (interface{}, error) {
 		started := time.Now()
-		requestLog := log.With(zap.String("grpc_method", info.FullMethod), zap.String("grpc_type", "unary"))
+
+		requestLog := log.With(
+			zap.String("grpc_method", info.FullMethod),
+			zap.String("grpc_type", "unary"),
+		)
+
 		ctx = context.WithValue(ctx, loggerContextKey{}, requestLog)
 
 		resp, err := handler(ctx, req)
-		logCompletion(requestLog, started, err)
+
+		logCompletion(WithTrace(ctx, requestLog), started, err)
+
 		return resp, err
 	}
 }

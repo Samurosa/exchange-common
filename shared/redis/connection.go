@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/redis/go-redis/extra/redisotel/v9"
 	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
@@ -30,7 +31,14 @@ func NewClient(ctx context.Context, logger *zap.Logger, cfg Config) (*redis.Clie
 		WriteTimeout:          cfg.Timeout,
 		ContextTimeoutEnabled: true,
 	})
+	if err := redisotel.InstrumentTracing(client); err != nil {
+		closeErr := client.Close()
 
+		return nil, errors.Join(
+			fmt.Errorf("instrument redis tracing: %w", err),
+			closeErr,
+		)
+	}
 	log.Info(
 		"redis retry configuration",
 		zap.Int("ping_max_attempts", cfg.PingMaxAttempts),
