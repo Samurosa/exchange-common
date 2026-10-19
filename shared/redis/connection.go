@@ -31,7 +31,10 @@ func NewClient(ctx context.Context, logger *zap.Logger, cfg Config) (*redis.Clie
 		WriteTimeout:          cfg.Timeout,
 		ContextTimeoutEnabled: true,
 	})
-	if err := redisotel.InstrumentTracing(client); err != nil {
+	if err := redisotel.InstrumentTracing(
+		client,
+		redisotel.WithDBStatement(false),
+	); err != nil {
 		closeErr := client.Close()
 
 		return nil, errors.Join(
