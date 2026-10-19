@@ -2,9 +2,6 @@ package recovery
 
 import "google.golang.org/grpc"
 
-// RecoveryStreamInterceptor перехватывает паники в следующих интерсепторах
-// и обработчике в горутине stream RPC. Для записи паники в лог подключается
-// после LoggerStreamInterceptor.
 func RecoveryStreamInterceptor() grpc.StreamServerInterceptor {
 	return func(
 		srv interface{},

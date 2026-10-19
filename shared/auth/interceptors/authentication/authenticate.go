@@ -70,7 +70,7 @@ func Authenticate(
 		return nil, contextError(ctx)
 	}
 
-	ctx, ok = sharedContext.UpdateRequestContext(
+	ctx = sharedContext.UpdateRequestContext(
 		ctx,
 		func(requestCtx *sharedContext.RequestContext) {
 			requestCtx.Principal.UserID = claims.UserID

@@ -7,10 +7,10 @@ type requestContextKey struct{}
 func UpdateRequestContext(
 	ctx context.Context,
 	update func(*RequestContext),
-) (context.Context, bool) {
+) context.Context {
 	requestCtx, ok := GetRequestContext(ctx)
 	if !ok {
-		return ctx, false
+		requestCtx = RequestContext{}
 	}
 
 	update(&requestCtx)
@@ -19,18 +19,15 @@ func UpdateRequestContext(
 		ctx,
 		requestContextKey{},
 		requestCtx,
-	), true
+	)
 }
 
 func GetRequestContext(
 	ctx context.Context,
 ) (RequestContext, bool) {
 	requestCtx, ok := ctx.Value(requestContextKey{}).(RequestContext)
-	if !ok {
-		return RequestContext{}, false
-	}
 
-	return requestCtx, true
+	return requestCtx, ok
 }
 
 func UserID(ctx context.Context) (string, bool) {
